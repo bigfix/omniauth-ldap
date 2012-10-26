@@ -14,7 +14,7 @@ module OmniAuth
       class AuthenticationError < StandardError; end
       class ConnectionError < StandardError; end
 
-      VALID_ADAPTER_CONFIGURATION_KEYS = [:host, :port, :method, :bind_dn, :password, :try_sasl, :sasl_mechanisms, :uid, :base, :allow_anonymous]
+      VALID_ADAPTER_CONFIGURATION_KEYS = [:host, :port, :method, :bind_dn, :password, :try_sasl, :sasl_mechanisms, :uid, :base, :allow_anonymous, :search_opts]
 
       MUST_HAVE_KEYS = [:host, :port, :method, :uid, :base]
 
@@ -59,6 +59,9 @@ module OmniAuth
                     :password => @password
                   }
         config[:auth] = @auth
+        @search_opts ||= {}
+        @search_opts = @search_opts.to_hash
+        @search_opts = @search_opts.symbolize_keys if @search_opts.respond_to?(:symbolize_keys)
         @connection = Net::LDAP.new(config)
       end
       
@@ -68,7 +71,7 @@ module OmniAuth
       def bind_as(args = {})        
         result = false
         @connection.open do |me|
-          rs = me.search args
+          rs = me.search args.merge(@search_opts)
           if rs and rs.first and dn = rs.first.dn
             password = args[:password]
             method = args[:method] || @method
